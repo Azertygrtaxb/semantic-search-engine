@@ -67,12 +67,12 @@ semantic-search-engine/
                  |  build_jsonl()              |
                  +-----------------------------+
                               |
-               normalized JSONL dataset
+                   normalized JSONL dataset
                               |
                               v
                  +-----------------------------+
                  | Sentence Embedding Model    |
-                 | all-MiniLM-L6-v2           |
+                 | all-MiniLM-L6-v2            |
                  +-----------------------------+
                               |
                      dense vector space
