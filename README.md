@@ -53,6 +53,49 @@ semantic-search-engine/
 └── README.md
 ```
 
+
+### 2.1 System Architecture Overview
+
+```
+                   +---------------------+
+                   |   Raw .txt files    |
+                   +----------+----------+
+                              |
+                              v
+                 +-----------------------------+
+                 |  Preprocessing Layer        |
+                 |  build_jsonl()              |
+                 +-----------------------------+
+                              |
+               normalized JSONL dataset
+                              |
+                              v
+                 +-----------------------------+
+                 | Sentence Embedding Model    |
+                 | all-MiniLM-L6-v2           |
+                 +-----------------------------+
+                              |
+                     dense vector space
+                              |
+                              v
+                 +-----------------------------+
+                 | FAISS Index (IndexFlatL2)   |
+                 +-----------------------------+
+                              |
+                     nearest-neighbor search
+                              |
+                              v
+                 +-----------------------------+
+                 | semantic_search() function  |
+                 +-----------------------------+
+                              |
+                              v
+                   +---------------------+
+                   |   FastAPI /search   |
+                   +---------------------+
+```
+
+
 ---
 
 ## 3. Design Rationale
