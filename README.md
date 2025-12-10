@@ -1,254 +1,181 @@
-# Semantic Search Engine for High-Throughput Technical Document Analysis
+# Semantic Search Engine for High-Throughput Technical Document Retrieval
 
-This repository contains a complete end-to-end semantic search pipeline tailored for large collections of technical documents, such as patent abstracts, scientific texts, standards, and engineering reports.  
-The system combines:
+This repository contains a complete semantic search pipeline designed for technical documents such as patents, engineering notes, scientific literature, and standards.  
+It demonstrates the core components of a scalable vector-based retrieval system combining:
 
-- deterministic preprocessing,  
-- dense vector representations (embeddings),  
-- a FAISS similarity index for high-dimensional retrieval,  
-- and a FastAPI service interface enabling real-time querying.
+- deterministic preprocessing  
+- dense embeddings using SentenceTransformers  
+- FAISS vector indexing  
+- semantic similarity search  
+- an API interface via FastAPI  
 
-The architectural objective is to demonstrate the core components of a scalable AI-assisted retrieval system that could be integrated into patent acquisition workflows, prior-art relevance assessment, claim similarity exploration, or large-scale document triage.
-
----
-
-## 1. System Overview
-
-The system follows a controlled, modular pipeline:
-
-1. **Raw document ingestion**  
-2. **Deterministic text preprocessing**
-3. **Dataset normalization into JSONL**
-4. **Embedding generation through SentenceTransformers**
-5. **Vector index construction using FAISS (IndexFlatL2)**
-6. **Metadata serialization**
-7. **Semantic query execution**
-8. **API exposure for downstream integration**
-
-The design prioritizes reproducibility, transparency, and extensibility.  
-No training occurs; the system relies on state-of-the-art sentence-level embedding models optimized for semantic similarity tasks.
+The objective is to provide a compact but fully functional architecture representative of real-world R&D information retrieval systems, especially those used in patent intelligence, prior-art exploration, or large-scale document triage.
 
 ---
 
-## 2. Architecture
+## 1. System Architecture
 
-```
-semantic-search-engine/
-│
-├── app/
-│   ├── main.py               # FastAPI application layer
-│   ├── preprocessing.py      # Deterministic data ingestion and JSONL generation
-│   ├── search.py             # Embedding model, FAISS index, vector similarity search
-│   ├── models.py             # Typed Pydantic request/response definitions
-│   └── config.py             # Future configuration management
-│
-├── data/
-│   ├── raw/                  # Input documents (.txt)
-│   └── processed/            # Normalized dataset (documents.jsonl)
-│
-├── index/
-│   ├── faiss_index.bin       # Serialized FAISS structure
-│   └── meta.json             # Mapping vector index → document metadata
-│
-└── README.md
-```
-
-
-### 2.1 System Architecture Overview
+The system follows a controlled and reproducible pipeline:
 
 ```
                    +---------------------+
-                   |   Raw .txt files    |
+                   |    Raw .txt files   |
                    +----------+----------+
                               |
                               v
                  +-----------------------------+
-                 |  Preprocessing Layer        |
-                 |  build_jsonl()              |
+                 |   Preprocessing Layer       |
+                 |   build_jsonl()             |
                  +-----------------------------+
                               |
-                   normalized JSONL dataset
+                normalized JSONL dataset
                               |
                               v
                  +-----------------------------+
-                 | Sentence Embedding Model    |
-                 | all-MiniLM-L6-v2            |
+                 |  Embedding Model            |
+                 |  all-MiniLM-L6-v2           |
                  +-----------------------------+
                               |
                      dense vector space
                               |
                               v
                  +-----------------------------+
-                 | FAISS Index (IndexFlatL2)   |
+                 |  FAISS Index (IndexFlatL2)  |
                  +-----------------------------+
                               |
-                     nearest-neighbor search
-                              |
-                              v
-                 +-----------------------------+
-                 | semantic_search() function  |
-                 +-----------------------------+
+                    nearest-neighbor search
                               |
                               v
-                   +---------------------+
-                   |   FastAPI /search   |
-                   +---------------------+
+                 +-----------------------------+
+                 |   semantic_search() API     |
+                 +-----------------------------+
 ```
 
+The architecture is modular, deterministic, and designed for reproducibility and extensibility.
 
 ---
 
-## 3. Design Rationale
-
-### 3.1 Choice of Embedding Model  
-The model used is:
+## 2. Repository Structure
 
 ```
-sentence-transformers/all-MiniLM-L6-v2
+semantic-search-engine/
+│
+├── app/
+│   ├── main.py               # FastAPI application
+│   ├── preprocessing.py      # Raw → JSONL normalization
+│   ├── search.py             # Embeddings, FAISS index, semantic search
+│   ├── models.py             # Pydantic request/response schemas
+│   └── config.py             # Future configuration module
+│
+├── data/
+│   ├── raw/                  # Input .txt files
+│   └── processed/            # Generated dataset (documents.jsonl)
+│
+├── index/
+│   ├── faiss_index.bin       # Serialized FAISS index
+│   └── meta.json             # Vector ID → metadata mapping
+│
+├── tests/                    # Basic unit tests
+│
+├── requirements.txt
+├── Dockerfile
+├── .gitignore
+└── README.md
 ```
-
-Rationale:
-
-- Balanced trade-off between semantic performance and inference speed  
-- Latency suitable for interactive search scenarios  
-- Embedding dimension (384) reduces memory footprint  
-- Model optimized for sentence-level similarity, fitting short-to-medium technical passages
-
-Other candidates (BERT, RoBERTa, SPLADE, ColBERT) were not selected due to heavier inference cost or additional indexing infrastructure requirements.
-
-### 3.2 Choice of FAISS Backend  
-The system uses:
-
-```
-faiss.IndexFlatL2
-```
-
-Rationale:
-
-- Deterministic, exact nearest-neighbor search
-- Ideal for datasets up to several hundred thousand vectors
-- Trivial to serialize and reload
-- No quantization or approximate search errors
-
-Possible extensions include IVF, HNSW, or PQ for million-scale corpora.
-
-### 3.3 Metadata Management  
-FAISS does not store document metadata.  
-The design explicitly externalizes:
-
-```
-vector_id → {id, title}
-```
-
-This guarantees:
-
-- full separation between vector index and document metadata  
-- transparent reindexing and introspection  
-- non-destructive updates of document descriptors  
 
 ---
 
-## 4. Installation
+## 3. Installation
 
-### 4.1 Environment Setup
+### 3.1 Create environment
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install fastapi "uvicorn[standard]" sentence-transformers faiss-cpu pydantic python-dotenv pytest
+```
+
+### 3.2 Install dependencies
+
+```bash
+pip install -r requirements.txt
 ```
 
 ---
 
-## 5. Dataset Construction
+## 4. Dataset Construction
 
-### 5.1 Raw Documents  
-All raw text files must be stored in:
+### 4.1 Raw documents
+
+Place `.txt` files inside:
 
 ```
 data/raw/
 ```
 
-Documents may include:
-
-- patent abstracts  
-- sections of RFCs  
-- scientific or engineering paragraphs  
-- descriptive technical narratives  
-
-### 5.2 Build the JSONL Dataset
+### 4.2 Generate normalized dataset
 
 ```bash
 python3 -c "from app.preprocessing import build_jsonl; build_jsonl()"
 ```
 
-Output is written to:
+Output:
 
 ```
 data/processed/documents.jsonl
 ```
 
-Each entry includes:
+Each line contains:
 
 ```json
-{"id": "doc_1", "title": "optical 01", "text": "...", "tags": []}
+{"id": "doc_1", "title": "wireless 01", "text": "...", "tags": []}
 ```
 
 ---
 
-## 6. Embedding Generation and FAISS Index
+## 5. Embeddings and FAISS Index
 
-### 6.1 Build the FAISS index
+### 5.1 Build the vector index
 
 ```bash
 python3 -c "from app.search import build_faiss_index; build_faiss_index()"
 ```
 
-Actions performed:
+This step:
 
-1. Load normalized JSONL dataset  
-2. Encode all documents into dense vectors  
-3. Construct FAISS index in memory  
-4. Serialize index to disk  
-5. Store metadata mapping in `meta.json`
-
-Generated files:
+1. Loads the JSONL dataset  
+2. Generates embeddings via SentenceTransformers  
+3. Builds a FAISS `IndexFlatL2`  
+4. Saves:
 
 ```
 index/faiss_index.bin
 index/meta.json
 ```
 
-### 6.2 Embedding Characteristics
+### 5.2 Embedding characteristics
 
-- Dimensionality: 384  
-- Vector type: float32  
-- Model: MiniLM (Transformer encoder)  
-- Search metric: L2 distance in embedding space  
+- Model: `sentence-transformers/all-MiniLM-L6-v2`  
+- Vector dimension: 384  
+- Representation: dense float32  
+- Design: optimized for semantic similarity  
 
 ---
 
-## 7. Semantic Search API
+## 6. Running the Semantic Search API
 
-### 7.1 Run the server
+### 6.1 Start API
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-### 7.2 Interactive Documentation
+### 6.2 Navigate to the documentation
 
 ```
 http://127.0.0.1:8000/docs
 ```
 
-### 7.3 Query Example
-
-Endpoint:
-
-```
-POST /search
-```
+### 6.3 Query example
 
 Request:
 
@@ -266,13 +193,8 @@ Response:
   "results": [
     {
       "doc_id": "doc_10",
-      "title": "wireless 03",
+      "title": "wireless_03",
       "score": 0.731
-    },
-    {
-      "doc_id": "doc_4",
-      "title": "optical 01",
-      "score": 0.894
     }
   ]
 }
@@ -280,33 +202,71 @@ Response:
 
 ---
 
-## 8. Retrieval Mechanics (Internal)
+## 7. Design Decisions
 
-### 8.1 Query Execution Path
+### 7.1 Embedding Model
+`all-MiniLM-L6-v2` was selected because it offers:
 
-1. Preprocess the input query  
-2. Compute embedding using the same encoder  
-3. Submit vector to FAISS for nearest-neighbor lookup  
-4. Retrieve indices and distances  
-5. Map indices to document identifiers through metadata  
-6. Return ranked results
+- favorable semantic performance  
+- low inference latency  
+- small memory footprint  
+- pretrained encoding suitable for sentence-level retrieval  
 
-### 8.2 Metric Considerations  
-L2 distance is used, but cosine similarity could be adopted through vector normalization prior to indexing.  
-Alternative settings include:
+Alternatives (SciBERT, PatentBERT, ColBERT) provide more domain depth but at significantly higher computational cost.
 
-- IndexFlatIP  
-- HNSW for high-recall approximate search  
-- IVF for multi-million scale regression  
+### 7.2 Index Structure
+`IndexFlatL2` provides:
 
-### 8.3 Determinism  
-Given that embeddings and FAISS operations are deterministic, repeated indexing will always generate the same results for a fixed dataset.
+- exact nearest-neighbor search  
+- deterministic ranking  
+- simple serialization  
+- strong baseline performance for corpora under several hundred thousand vectors  
+
+For very large-scale retrieval, IVF or HNSW would become necessary.
+
+### 7.3 Metadata Decoupling
+FAISS only stores vectors and internal IDs.  
+This system explicitly separates metadata into a JSON mapping:
+
+```
+vector_id → { doc_id, title }
+```
+
+This enables non-destructive metadata updates and simplifies index regeneration.
+
+### 7.4 Determinism
+All operations (preprocessing, encoding, indexing) are deterministic given a fixed dataset.  
+No randomness is introduced, ensuring reproducible outputs.
 
 ---
 
-## 9. CLI Query Example
+## 8. Limitations
 
-Direct semantic query via command line:
+- Long documents are not chunked; each file is treated as a single unit.  
+- `IndexFlatL2` does not scale efficiently to millions of vectors.  
+- No hybrid BM25 + dense retrieval fusion is implemented.  
+- No ranking normalization (e.g., softmax over similarity scores).  
+- No evaluation metrics (recall, NDCG) are computed.  
+
+---
+
+## 9. Future Work
+
+Planned or recommended improvements:
+
+- Implement cosine similarity using normalized embeddings.  
+- Add HNSW or IVF-PQ for large-scale approximate indexing.  
+- Add document chunking and passage-level retrieval.  
+- Integrate sparse-dense hybrid search (BM25 + embeddings).  
+- Add performance benchmarks (query latency, throughput, memory usage).  
+- Add Streamlit or React UI for interactive exploration.  
+- Add pipeline orchestration (Makefile or Invoke).  
+
+---
+
+## 10. Example CLI Query
+
+Run a search directly:
 
 ```bash
 python3 -c "from app.search import semantic_search; print(semantic_search('optical signal attenuation models', 3))"
@@ -314,52 +274,46 @@ python3 -c "from app.search import semantic_search; print(semantic_search('optic
 
 ---
 
-## 10. Evaluation and Testing
+## 11. Testing
 
-### 10.1 Unit Tests
-
-Tests can be extended to validate:
-
-- dataset integrity  
-- embedding dimension consistency  
-- FAISS index loading  
-- deterministic search results  
-- API endpoint stability  
-
-Run test suite:
+### 11.1 Run all tests
 
 ```bash
 pytest
 ```
 
----
+### 11.2 Example test file
 
-## 11. Extension Opportunities
+```
+tests/test_search.py
+```
 
-Several enhancements are architecturally compatible:
-
-### 11.1 Model and Embedding Improvements
-
-- Long document handling via chunking and hierarchical embeddings  
-- Model distillation for accelerated inference  
-- Domain-specific models (SciBERT, PatentBERT, LegalBERT)
-
-### 11.2 Indexing Improvements
-
-- IVF Flat for scalable approximate search  
-- HNSW for graph-based retrieval  
-- Product Quantization (PQ) for memory reduction  
-
-### 11.3 API and System Extensions
-
-- scoring normalization  
-- contextual snippets returned with results  
-- ranking fusion (BM25 + dense retrieval)  
-- distributed index hosting  
-- stream processing for continuous ingestion  
+Contains minimal structural tests for the search function.
 
 ---
 
-## 12. License
+## 12. Docker Support
+
+### 12.1 Build the image
+
+```bash
+docker build -t semantic-search-engine .
+```
+
+### 12.2 Run the container
+
+```bash
+docker run -p 8000:8000 semantic-search-engine
+```
+
+The API will be exposed at:
+
+```
+http://127.0.0.1:8000
+```
+
+---
+
+## 13. License
 
 MIT License.
