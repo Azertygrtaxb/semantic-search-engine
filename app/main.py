@@ -4,12 +4,12 @@ from app.search import semantic_search
 
 app = FastAPI()
 
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-@app.post("/search", response_model=SearchResponse)
-def search(req: SearchRequest):
-    results = semantic_search(req.query, req.top_k)
+@app.post("/search")
+def search(request: SearchRequest, metric: str = Query("l2", enum=["l2", "cosine"])):
+    results = semantic_search(
+        query=request.query,
+        top_k=request.top_k,
+        metric=metric
+    )
     return SearchResponse(results=results)
 
