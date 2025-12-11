@@ -73,7 +73,7 @@ def build_faiss_index(metric: str = "l2"):
 
     # Metadata mapping
     meta = {
-        str(i): {"doc_id": docs[i]["id"], "title": docs[i]["title"]}
+        str(i): {"doc_id": docs[i]["id"], "parent_id": docs[i]["parent_id"], "chunk_index": docs[i]["chunk_index"],"title": docs[i]["title"]}
         for i in range(len(docs))
     }
 
@@ -121,8 +121,10 @@ def semantic_search(query: str, top_k: int = 5, metric: str = "l2"):
         info = meta[str(idx)]
         results.append(
             {
-                "doc_id": info["doc_id"],
+                "chunk_id": info["doc_id"],
+		"parent_id": info.get("parent_id"),
                 "title": info["title"],
+		"chunk_index": info.get("chunk_index"),
                 "score": float(distances[0][rank]),
             }
         )
