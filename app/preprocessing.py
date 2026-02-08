@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from app.chunk import sloding_window_chunk
+from app.chunk import sliding_window_chunk
 from app.preprocessing import clean_text
 
 def clean_text(text: str) -> str:
